@@ -1,10 +1,12 @@
 #include <iostream>
+#include <sstream>
+#include <string.h>
 
 using namespace std;
 
 typedef struct sArvore
 {
-    char elemento;
+    char elemento[5];
     struct sArvore *esquerda;
     struct sArvore *direita;
 } Arvore;
@@ -13,8 +15,67 @@ typedef struct lista
 {
     int freq;
     char elem;
+    Arvore *raiz;
     struct lista *prox;
 } Lista;
+
+void imprimeA(Arvore *arv, int nivel)
+{
+    Arvore *aux = arv;
+    if(arv != NULL)
+    {
+        imprimeA(aux->direita, nivel+1);
+        for(int i = 0; i < nivel; i++)
+            printf("      ");
+        printf("%6s\n\n", arv->elemento);
+        imprimeA(aux->esquerda, nivel+1);
+    }
+}
+
+Arvore* insereA(Arvore *arv, char elem[], int lado)
+{
+    if(arv == NULL)
+    {
+        arv = (Arvore*) malloc(sizeof(Arvore));
+        arv->esquerda = NULL;
+        arv->direita = NULL;
+        strcpy(arv->elemento, elem);
+    }
+    else if(arv->direita == NULL)
+        arv->direita = insereA(arv->direita, elem, lado);
+    else if(arv->esquerda == NULL)
+        arv->esquerda = insereA(arv->esquerda, elem, lado);
+    else if(lado == 1)
+    {
+        Arvore *aux;
+        aux = (Arvore*) malloc(sizeof(Arvore));
+        strcpy(aux->elemento, elem);
+        aux->esquerda = NULL;
+        aux->direita = arv;
+        arv = aux;
+    }
+    else
+    {
+        Arvore *aux;
+        aux = (Arvore*) malloc(sizeof(Arvore));
+        strcpy(aux->elemento, elem);
+        aux->esquerda = arv;
+        aux->direita = NULL;
+        arv = aux;
+    }
+    return arv;
+}
+
+Arvore* juntarArvore(Arvore *a1, Arvore *a2)
+{
+    a1->direita = a2;
+    return a1;
+}
+
+
+
+
+
 
 int existeElemento(Lista *listaE, char elem)
 {
@@ -120,12 +181,12 @@ Lista* buscaElemento(Lista *lista, char elem)
     return NULL;
 }
 
-Lista* insere(Lista *lista, char elem)
+Lista* insereLista(Lista *lista, char elem, int freq, Arvore *arv)
 {
     Lista *novo, *nodo;
     novo = (Lista*)malloc(sizeof(Lista));
 
-    if(existeElemento(lista, elem))
+    if(elem != NULL && existeElemento(lista, elem))
     {
         nodo = buscaElemento(lista, elem);
         nodo->freq += 1;
@@ -133,7 +194,8 @@ Lista* insere(Lista *lista, char elem)
     }
 
     novo->elem = elem;
-    novo->freq = 1;
+    novo->raiz = arv;
+    novo->freq = freq;
     if(lista == NULL)
     {
         novo->prox = NULL;
@@ -149,7 +211,7 @@ Lista* insere(Lista *lista, char elem)
 
 Lista* retiraLista(Lista *lista, char elem)
 {
-    Lista *elim, *ant;
+    Lista *elim, *ant, *ptr;
 
     if(lista != NULL)
     {
@@ -186,15 +248,79 @@ Lista* frequencia(Lista *lista, string texto)
 {
     for (int i = 0; i < texto.length(); i++)
     {
-            lista = insere(lista, texto[i]);
+            lista = insereLista(lista, texto[i], 1, NULL);
     }
     return lista;
 }
 
 
+
+
+
+Arvore* montarArvoreTexto(Lista *lista)
+{
+    Arvore *arv = NULL;
+    Lista *aux = lista;
+    if(aux->prox != NULL)
+    {
+        int soma;
+        char res[5];
+        soma = aux->freq + aux->prox->freq;
+        itoa(soma, res, 10);
+        if(aux->raiz != NULL || aux->prox->raiz != NULL)
+        {
+            if(aux->elem == NULL && aux->prox->elem == NULL)
+            {
+                arv = insereA(aux->raiz, res, 0);
+                arv = juntarArvore(arv, aux->prox->raiz);
+            }
+            else if(aux->elem != NULL)
+            {
+                arv = insereA(aux->prox->raiz, res, 0);
+                char el[2];
+                el[0] = aux->elem;
+                el[1] = '\0';
+                arv = insereA(arv, el, 0);
+            }
+            else
+            {
+                arv = insereA(aux->raiz, res, 1);
+                char el[2];
+                el[0] = aux->prox->elem;
+                el[1] = '\0';
+                arv = insereA(arv, el, 0);
+            }
+        }
+        else
+        {
+            arv = insereA(arv, res, 1);
+            char el[2];
+            el[0] = aux->elem;
+            el[1] = '\0';
+            arv = insereA(arv, el, 1);
+            el[0] = aux->prox->elem;
+            el[1] = '\0';
+            arv = insereA(arv, el, 1);
+        }
+
+        lista = retiraLista(lista, aux->elem);///////
+        lista = retiraLista(lista, aux->prox->elem);
+        lista = insereLista(lista, NULL, soma, arv);
+
+        //cout<<"\n\n";
+        //imprime(lista);
+
+        return montarArvoreTexto(lista);
+    }
+    return lista->raiz;
+}
+
+
+
+
 int main()
 {
-    Arvore *arv;
+    Arvore *arv = NULL;
     Lista *lista;
     lista = NULL;
     string texto = "teste banana";
@@ -202,11 +328,14 @@ int main()
     lista = frequencia(lista, texto);
     cout<<"hhhh\n";
     imprime(lista);
-    lista = retiraLista(lista, 'a');
+    //lista = retiraLista(lista, 'a');
     cout<<"\n";
     imprime(lista);
+
+    arv = montarArvoreTexto(lista);
+    cout<<"-0000\n";
+    imprimeA(arv, 0);
 
 
     return 0;
 }
-
