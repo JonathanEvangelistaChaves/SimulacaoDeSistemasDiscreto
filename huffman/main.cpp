@@ -19,6 +19,13 @@ typedef struct lista
     struct lista *prox;
 } Lista;
 
+typedef struct cod
+{
+    char elem[5];
+    char codigo[10];
+    struct cod *prox;
+}LCodigo;
+
 void imprimeA(Arvore *arv, int nivel)
 {
     Arvore *aux = arv;
@@ -66,16 +73,67 @@ Arvore* insereA(Arvore *arv, char elem[], int lado)
     return arv;
 }
 
+void mostraLCodigo(LCodigo *lCod)
+{
+    LCodigo *p;
+    p = lCod;
+    while(p != NULL)
+    {
+		cout<<"Elem: "<<p->elem<<"  Cod: "<<p->codigo<<endl;
+        p = p->prox;
+    }
+}
+
+LCodigo* insereLCodigo(LCodigo *lCod, char elem[], char cod[])
+{
+    LCodigo *aux;
+    aux = (LCodigo*) malloc(sizeof(LCodigo));
+    if(aux != NULL)
+    {
+        strcpy(aux->elem, elem);
+        strcpy(aux->codigo, cod);
+        aux->prox = lCod;
+        lCod = aux;
+    }
+    else
+        cout<<"Sem Memoria"<<endl;
+    return lCod;
+}
+
+
+LCodigo* geraCodigoArvore(Arvore *arv, LCodigo *lCod, char cod[])
+{
+    Arvore *aux;
+    aux = arv;
+    char c[10] = "";
+    if(aux != NULL)
+    {
+        if(aux->esquerda == NULL && aux->direita == NULL)
+        {
+            lCod = insereLCodigo(lCod, aux->elemento, cod);
+        }
+        if(aux->esquerda != NULL)
+        {
+            strcpy(c, cod);
+            strcat(cod, "0");
+            lCod = geraCodigoArvore(aux->esquerda, lCod, cod);
+        }
+        strcpy(cod, c);
+        if(aux->direita != NULL)
+        {
+            strcat(cod, "1");
+            lCod = geraCodigoArvore(aux->direita, lCod, cod);
+        }
+    }
+    return lCod;
+}
+
+
 Arvore* juntarArvore(Arvore *a1, Arvore *a2)
 {
     a1->direita = a2;
     return a1;
 }
-
-
-
-
-
 
 int existeElemento(Lista *listaE, char elem)
 {
@@ -248,14 +306,10 @@ Lista* frequencia(Lista *lista, string texto)
 {
     for (int i = 0; i < texto.length(); i++)
     {
-            lista = insereLista(lista, texto[i], 1, NULL);
+        lista = insereLista(lista, texto[i], 1, NULL);
     }
     return lista;
 }
-
-
-
-
 
 Arvore* montarArvoreTexto(Lista *lista)
 {
@@ -316,25 +370,103 @@ Arvore* montarArvoreTexto(Lista *lista)
 }
 
 
+char* pesquisaElemCodigo(LCodigo *lCod, char ch)
+{
+    LCodigo *lC;
+    lC = lCod;
+    char elem[2];
+    elem[0] = ch;
+    elem[1] = '\0';
+    while(lC != NULL && strcmp(lC->elem, elem) != 0)
+    {
+        lC = lC->prox;
+    }
+    if(strcmp(lC->elem, elem) == 0)
+    {
+        char *ret;
+        ret = lC->codigo;
+        return ret;
+    }
+    return NULL;
+}
+
+void percorreParaComprimir(string texto, LCodigo *lCod)
+{
+    char ch, palavra;
+    char *cod;
+    int deslocamento;
+    palavra = 0x00;
+    deslocamento = 0;
+    int v[8];
+    for (int i = 0; i < texto.length(); i++)
+    {
+        ch = texto[i];
+
+        cod = pesquisaElemCodigo(lCod, ch);
+
+        if(cod != NULL)
+        {
+            for(int i = 0; cod[i] != '\0'; i++)
+            {
+                if(deslocamento < 8)
+                {
+                    palavra <<= 1;
+                    if(cod[i] == '1')
+						palavra += 1;
+
+                    deslocamento++;
+                }
+                else
+                {
+                    cout<<palavra;
+                    deslocamento = 0;
+                    palavra = 0x00;
+
+                    palavra <<= 1;
+                    if(cod[i] == '1')
+                        palavra += 1;
+                    deslocamento++;
+                }
+            }
+        }
+    }
+    if(deslocamento < 8)
+    {
+        while(deslocamento < 8)
+        {
+            palavra <<= 1;
+            deslocamento++;
+        }
+        cout<<palavra;
+    }
+}
 
 
 int main()
 {
     Arvore *arv = NULL;
     Lista *lista;
+    LCodigo *lCod = NULL;
     lista = NULL;
     string texto = "teste banana";
-
+	
+	
     lista = frequencia(lista, texto);
     cout<<"hhhh\n";
-    imprime(lista);
-    //lista = retiraLista(lista, 'a');
-    cout<<"\n";
     imprime(lista);
 
     arv = montarArvoreTexto(lista);
     cout<<"-0000\n";
     imprimeA(arv, 0);
+
+    cout<<"\n----------------\n";
+    char cod[10] = "";
+    lCod = geraCodigoArvore(arv, lCod, cod);
+    mostraLCodigo(lCod);
+
+    cout<<"\nTexto Comprimido"<<endl;
+    percorreParaComprimir(texto, lCod);
+    cout<<endl;
 
 
     return 0;
